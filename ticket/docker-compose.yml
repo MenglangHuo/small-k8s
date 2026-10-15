@@ -1,0 +1,86 @@
+services:
+  # -------------------------------------------------------------
+  # MongoDB 7.0 Reactive Database
+  # -------------------------------------------------------------
+  mongo:
+    image: mongo:7.0
+    container_name: ticket-mongodb
+    restart: unless-stopped
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    environment:
+      MONGO_INITDB_DATABASE: ticket_db
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - ticket-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # -------------------------------------------------------------
+  # Spring WebFlux Reactive Ticket Microservice
+  # -------------------------------------------------------------
+  ticket-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ticket-service
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "${SERVER_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: 8000
+      MONGODB_URI: mongodb://mongo:27017/ticket_db
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+      AWS_BUCKET_PRIVATE: ${AWS_BUCKET_PRIVATE:-rumluos-app}
+      AWS_BUCKET_STATIC: ${AWS_BUCKET_STATIC:-rumluos-app}
+      AWS_PRIVATE_FILE_EXPIRED: ${AWS_PRIVATE_FILE_EXPIRED:-3600}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-5453551747:AAHwNAd3BjrbqE5gLrK9kbAPQOp22Zmcfs4}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-menglang6969Bot}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:--1004247055582}
+    networks:
+      - ticket-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # -------------------------------------------------------------
+  # Mongo Express GUI (Optional Database Viewer on Port 8081)
+  # -------------------------------------------------------------
+  mongo-express:
+    image: mongo-express:latest
+    container_name: ticket-mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_BASICAUTH: "false"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - ticket-network
+    profiles:
+      - debug
+
+networks:
+  ticket-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
+    driver: local

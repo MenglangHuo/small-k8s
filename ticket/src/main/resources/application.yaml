@@ -1,0 +1,51 @@
+server:
+  port: ${SERVER_PORT:8000}
+
+spring:
+  application:
+    name: ticket
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/ticket_db}
+      auto-index-creation: true
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    date-format: "yyyy-MM-dd HH:mm:ss"
+    time-zone: "Asia/Phnom_Penh"
+    serialization:
+      write-dates-as-timestamps: false
+
+aws:
+  s3:
+    region: ${AWS_DEFAULT_REGION:us-east-1}
+    bucket-private: ${AWS_BUCKET_PRIVATE:rumluos-app}
+    bucket-static: ${AWS_BUCKET_STATIC:rumluos-app}
+    presigned-expiry-seconds: ${AWS_PRIVATE_FILE_EXPIRED:3600}
+    static-url: ${AWS_STATIC_URL:}
+    private-url: ${AWS_PRIVATE_URL:}
+    access-key-id: ${AWS_ACCESS_KEY_ID:}
+    secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+
+telegram:
+  bot-token: ${TELEGRAM_BOT_TOKEN:5453551747:AAHwNAd3BjrbqE5gLrK9kbAPQOp22Zmcfs4}
+  bot-username: ${TELEGRAM_BOT_USERNAME:menglang6969Bot}
+  default-chat-id: ${TELEGRAM_CHAT_ID:-1004247055582}
+  webhook-secret: ${TELEGRAM_WEBHOOK_SECRET:}
+  invite-expiry-days: ${TELEGRAM_INVITE_EXPIRY_DAYS:7}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      telegram_api:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 300s
+        permitted-number-of-calls-in-half-open-state: 3
+
+ticket:
+  default-prefix: ${TICKET_DEFAULT_PREFIX:TCK}
+  outbox:
+    polling-interval-ms: 5000
+    batch-size: 50
+    max-attempts: 5
