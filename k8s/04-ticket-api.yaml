@@ -34,8 +34,8 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: ticket-api
-          # Replace with your registry and an immutable release tag or digest.
-          image: yourdockeruser/ticket-api:1.0.0
+          # Pre-built release image on Docker Hub
+          image: menglang6969/ticket-api:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000

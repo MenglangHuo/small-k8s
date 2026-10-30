@@ -19,7 +19,7 @@ spec:
     # Let's Encrypt Production ACME Server
     server: https://acme-v02.api.letsencrypt.org/directory
     # Your email for certificate expiry notifications
-    email: admin@yourdomain.com
+    email: huomenglang@gmail.com
     privateKeySecretRef:
       name: letsencrypt-prod-account-key
     solvers:

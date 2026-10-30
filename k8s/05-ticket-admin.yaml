@@ -130,8 +130,8 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: ticket-admin
-          # Replace with your registry and an immutable release tag or digest.
-          image: yourdockeruser/ticket-admin:1.0.0
+          # Pre-built release image on Docker Hub
+          image: menglang6969/ticket-admin:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
