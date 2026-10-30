@@ -96,26 +96,20 @@ spec:
             limits:
               memory: "450Mi"
               cpu: "300m"
-          # Readiness: Is MongoDB accepting connections?
+          # Readiness: Is MongoDB accepting connections on port 27017?
           readinessProbe:
-            exec:
-              command:
-                - mongosh
-                - --eval
-                - "db.adminCommand('ping')"
+            tcpSocket:
+              port: 27017
             initialDelaySeconds: 10
             periodSeconds: 10
-            timeoutSeconds: 5
+            timeoutSeconds: 3
           # Liveness: Is MongoDB still alive?
           livenessProbe:
-            exec:
-              command:
-                - mongosh
-                - --eval
-                - "db.adminCommand('ping')"
+            tcpSocket:
+              port: 27017
             initialDelaySeconds: 30
             periodSeconds: 30
-            timeoutSeconds: 5
+            timeoutSeconds: 3
       volumes:
         - name: mongo-data
           persistentVolumeClaim:
