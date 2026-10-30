@@ -86,12 +86,15 @@ spec:
               mountPath: /docker-entrypoint-initdb.d/10-create-app-user.sh
               subPath: 10-create-app-user.sh
               readOnly: true
+          args:
+            - "--wiredTigerCacheSizeGB"
+            - "0.25"
           resources:
             requests:
               memory: "128Mi"
               cpu: "50m"
             limits:
-              memory: "384"
+              memory: "450Mi"
               cpu: "300m"
           # Readiness: Is MongoDB accepting connections?
           readinessProbe:
