@@ -145,9 +145,9 @@ ticket/
 | `AWS_BUCKET_PRIVATE` | S3 bucket for private attachments | `rumluos-app` |
 | `AWS_BUCKET_STATIC` | S3 bucket for public static files | `rumluos-app` |
 | `AWS_PRIVATE_FILE_EXPIRED` | Presigned URL expiration (in seconds) | `3600` |
-| `TELEGRAM_BOT_TOKEN` | Telegram Bot API token | `5453551747:AAHwNAd3...` |
-| `TELEGRAM_BOT_USERNAME` | Telegram Bot handle for deep links | `menglang6969Bot` |
-| `TELEGRAM_CHAT_ID` | Fallback Telegram channel / chat ID | `-1004247055582` |
+| `TELEGRAM_BOT_TOKEN` | Telegram Bot API token | Set a private token in your local `.env` |
+| `TELEGRAM_BOT_USERNAME` | Telegram Bot handle for deep links | Your bot username |
+| `TELEGRAM_CHAT_ID` | Fallback Telegram channel / chat ID | Your chat or channel ID |
 | `TICKET_DEFAULT_PREFIX` | Ticket identifier sequence prefix | `TCK` |
 
 ---

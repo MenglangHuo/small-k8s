@@ -1,9 +1,20 @@
 server:
-  port: ${SERVER_PORT:8000}
+  port: ${SERVER_PORT:8888}
+  netty:
+    accesslog:
+      enabled: ${SERVER_NETTY_ACCESSLOG_ENABLED:true}
+
+logging:
+  level:
+    root: INFO
+    com.menglang.ticket: INFO
+    org.springframework.web: INFO
 
 spring:
   application:
     name: ticket
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/ticket_db}
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/ticket_db}
@@ -12,8 +23,6 @@ spring:
     property-naming-strategy: SNAKE_CASE
     date-format: "yyyy-MM-dd HH:mm:ss"
     time-zone: "Asia/Phnom_Penh"
-    serialization:
-      write-dates-as-timestamps: false
 
 aws:
   s3:
@@ -27,9 +36,9 @@ aws:
     secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
 
 telegram:
-  bot-token: ${TELEGRAM_BOT_TOKEN:5453551747:AAHwNAd3BjrbqE5gLrK9kbAPQOp22Zmcfs4}
-  bot-username: ${TELEGRAM_BOT_USERNAME:menglang6969Bot}
-  default-chat-id: ${TELEGRAM_CHAT_ID:-1004247055582}
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
+  bot-username: ${TELEGRAM_BOT_USERNAME:}
+  default-chat-id: ${TELEGRAM_CHAT_ID:}
   webhook-secret: ${TELEGRAM_WEBHOOK_SECRET:}
   invite-expiry-days: ${TELEGRAM_INVITE_EXPIRY_DAYS:7}
 
@@ -44,6 +53,7 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 3
 
 ticket:
+  api-secret: ${TICKET_API_SECRET:}
   default-prefix: ${TICKET_DEFAULT_PREFIX:TCK}
   outbox:
     polling-interval-ms: 5000

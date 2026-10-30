@@ -1,0 +1,23 @@
+# Restrict MongoDB connections to the ticket-api pods in this namespace.
+# K3s includes a network-policy controller; do not disable it if using this.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mongodb-only-from-ticket-api
+  namespace: ticket-prod
+  labels:
+    app.kubernetes.io/part-of: mono-ticket
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mongodb
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ticket-api
+      ports:
+        - protocol: TCP
+          port: 27017

@@ -1,0 +1,80 @@
+# --------------------------------------------------
+# Ingress: External routing rules for HTTPS
+# --------------------------------------------------
+# Routes:
+#   yourdomain.com       → ticket-admin-svc (Vue SPA)
+#   www.yourdomain.com   → ticket-admin-svc (Vue SPA)
+#   api.yourdomain.com   → ticket-api-svc   (Spring Boot)
+#
+# ⚠️  REPLACE "yourdomain.com" with your actual domain!
+# --------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ticket-ingress
+  namespace: ticket-prod
+  labels:
+    app.kubernetes.io/part-of: mono-ticket
+    app.kubernetes.io/component: ingress
+  annotations:
+    # cert-manager reads this annotation to create and renew the TLS certificate.
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Traefik sends browser HTTP requests to HTTPS.
+    traefik.ingress.kubernetes.io/router.middlewares: ticket-prod-https-redirect@kubernetescrd
+spec:
+  # K3s bundles Traefik as its ingress controller.
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - yourdomain.com
+        - www.yourdomain.com
+        - api.yourdomain.com
+      secretName: ticket-prod-tls-secret
+  rules:
+    # 1. Root domain → Vue.js Frontend
+    - host: yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ticket-admin-svc
+                port:
+                  number: 80
+    # 2. WWW subdomain → Vue.js Frontend
+    - host: www.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ticket-admin-svc
+                port:
+                  number: 80
+    # 3. API subdomain → Spring Boot Backend (direct access)
+    - host: api.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ticket-api-svc
+                port:
+                  number: 8000
+
+---
+# Redirect plain HTTP requests to HTTPS at the edge proxy.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: https-redirect
+  namespace: ticket-prod
+  labels:
+    app.kubernetes.io/part-of: mono-ticket
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true

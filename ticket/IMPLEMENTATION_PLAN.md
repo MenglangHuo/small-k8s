@@ -34,7 +34,7 @@ aws:
     private-url: ${AWS_PRIVATE_URL:}
 
 telegram:
-  bot-token: ${TELEGRAM_BOT_TOKEN:5453551747:AAHwNAd3BjrbqE5gLrK9kbAPQOp22Zmcfs4}
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
   bot-username: ${TELEGRAM_BOT_USERNAME:menglang6969Bot}
   default-chat-id: ${TELEGRAM_CHAT_ID:-1004247055582}
   webhook-secret: ${TELEGRAM_WEBHOOK_SECRET:}

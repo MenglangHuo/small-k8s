@@ -127,9 +127,22 @@ public class ApiClientApplicationService implements ApiClientUseCase {
             return Mono.error(new UnauthorizedClientException("Invalid API client credentials"));
         }
 
+        String secretSha256 = sha256(clientSecret);
+
         return apiClientRepositoryPort.findByClientId(clientId)
-                .filter(client -> Boolean.TRUE.equals(client.getIsActive()) && clientSecret.equals(client.getClientSecret()))
+                .filter(client -> Boolean.TRUE.equals(client.getIsActive()) &&
+                        (clientSecret.equals(client.getClientSecret()) || secretSha256.equals(client.getClientSecret())))
                 .switchIfEmpty(Mono.error(new UnauthorizedClientException("Invalid API client credentials")));
+    }
+
+    private String sha256(String input) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            return "";
+        }
     }
 
     private String generateClientId() {

@@ -19,8 +19,9 @@ All running on a single **AWS EC2 t3.micro** (1 vCPU, 1GB RAM + 2GB Swap) using 
 
 | Document | Description |
 |:---|:---|
+| [00_k8s_architecture.md](docs/00_k8s_architecture.md) | Deep dive: Cluster, node, pod, services, and networking architecture |
 | [01_requirements.md](docs/01_requirements.md) | Prerequisites, specs, and resource budget |
-| [02_infrastructure_setup.md](docs/02_infrastructure_setup.md) | EC2 launch, swap, K3s, Helm, DNS |
+| [02_infrastructure_setup.md](docs/02_infrastructure_setup.md) | EC2 launch, swap, K3s, Nginx Ingress, DNS |
 | [03_deployment_guide.md](docs/03_deployment_guide.md) | Build images, deploy manifests, verify |
 | [04_troubleshooting.md](docs/04_troubleshooting.md) | When things go wrong |
 | [k8s_guideline.md](k8s/k8s_guideline.md) | K8s concepts, docker-compose comparison |
@@ -54,12 +55,14 @@ kubectl get pods -n ticket-prod
 k8s/
 ├── 00-namespace.yaml        # ticket-prod namespace
 ├── 01-configmap.yaml        # Non-sensitive env vars
-├── 02-secrets.yaml          # AWS/Telegram credentials (edit before deploy!)
-├── 03-mongodb.yaml          # MongoDB: PVC + Deployment + Service
+├── 02-secrets.example.yaml  # Credentials template (copy to 02-secrets.yaml)
+├── 03-mongodb.yaml          # MongoDB: PVC + Deployment + Service + Init
 ├── 04-ticket-api.yaml       # Spring Boot API: Deployment + Service
 ├── 05-ticket-admin.yaml     # Vue.js SPA: Nginx ConfigMap + Deployment + Service
-├── 06-ingress.yaml          # Domain routing + SSL
-├── 07-cluster-issuer.yaml   # Let's Encrypt auto-SSL
+├── 06-ingress.yaml          # Domain routing + Traefik HTTPS redirect
+├── 07-cluster-issuer.yaml   # Let's Encrypt auto-SSL (Traefik ACME)
+├── 08-mongodb-network-policy.yaml # Zero-trust DB NetworkPolicy
+├── deploy.sh                # Production deployment automation CLI script
 └── k8s_guideline.md         # Understanding the K8s setup
 ```
 

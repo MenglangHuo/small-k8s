@@ -8,9 +8,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "telegram")
 public class TelegramConfig {
-    private String botToken = "5453551747:AAHwNAd3BjrbqE5gLrK9kbAPQOp22Zmcfs4";
-    private String botUsername = "menglang6969Bot";
-    private String defaultChatId = "-1004247055582";
+    private String botToken = "";
+    private String botUsername = "";
+    private String defaultChatId = "";
     private String webhookSecret = "";
     private int inviteExpiryDays = 7;
 }

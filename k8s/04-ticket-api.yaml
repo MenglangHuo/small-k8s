@@ -1,0 +1,152 @@
+# --------------------------------------------------
+# Ticket API: Spring Boot WebFlux Deployment + Service
+# --------------------------------------------------
+# The JVM is the largest memory consumer on a t3.micro.
+# JAVA_TOOL_OPTIONS caps the heap so it never OOM-kills.
+# Strategy is Recreate to prevent 2 JVMs running at once.
+# --------------------------------------------------
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticket-api
+  namespace: ticket-prod
+  labels:
+    app.kubernetes.io/name: ticket-api
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: mono-ticket
+spec:
+  replicas: 1
+  # Recreate: Kill old pod before starting new one.
+  # Critical on 1GB RAM — two JVMs running simultaneously = OOM.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ticket-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ticket-api
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: mono-ticket
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: ticket-api
+          # Replace with your registry and an immutable release tag or digest.
+          image: yourdockeruser/ticket-api:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            # The values below come from the Secret. Kubernetes expands the
+            # credentials into the URI because they are declared first.
+            - name: MONGO_APP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ticket-secrets
+                  key: MONGO_APP_USERNAME
+            - name: MONGO_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ticket-secrets
+                  key: MONGO_APP_PASSWORD
+            - name: MONGODB_URI
+              value: "mongodb://$(MONGO_APP_USERNAME):$(MONGO_APP_PASSWORD)@mongo-svc:27017/ticket_db?authSource=ticket_db"
+            - name: TICKET_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ticket-secrets
+                  key: TICKET_API_SECRET
+            # ---- JVM Memory Settings (CRITICAL for 1GB RAM) ----
+            # SerialGC:          Single-threaded GC, lowest overhead
+            # Xmx256m:           Max heap 256 MB
+            # Xms128m:           Initial heap 128 MB
+            # MaxMetaspaceSize:  Cap class metadata memory
+            # UseContainerSupport: Respect container memory limits
+            - name: JAVA_TOOL_OPTIONS
+              value: >-
+                -XX:+UseSerialGC
+                -Xmx256m
+                -Xms128m
+                -XX:MaxMetaspaceSize=96m
+                -XX:+UseContainerSupport
+                -Djava.io.tmpdir=/tmp
+          # Inject all config and secrets as environment variables
+          envFrom:
+            - configMapRef:
+                name: ticket-config
+            - secretRef:
+                name: ticket-secrets
+          volumeMounts:
+            # Java and Netty may write temporary files here; keep the root read-only.
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              memory: "200Mi"
+              cpu: "150m"
+            limits:
+              memory: "400Mi"
+              cpu: "600m"
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          # Startup probe: JVM can take 60-90s to start on a micro instance
+          # Checks every 10s, up to 30 failures = 5 minutes max startup time
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8000
+            failureThreshold: 30
+            periodSeconds: 10
+          # Readiness: Is the API ready to serve traffic?
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          # Liveness: Is the API still alive?
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi
+
+---
+# --- Ticket API ClusterIP Service ---
+# Frontend (nginx) proxies /api requests to this service.
+# Internal DNS: ticket-api-svc.ticket-prod.svc.cluster.local:8000
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticket-api-svc
+  namespace: ticket-prod
+  labels:
+    app.kubernetes.io/name: ticket-api
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: mono-ticket
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ticket-api
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+      name: http

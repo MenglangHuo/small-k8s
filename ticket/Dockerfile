@@ -3,7 +3,7 @@
 # ==========================================
 
 # Stage 1: Build JAR
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM eclipse-temurin:25-jdk-alpine AS builder
 WORKDIR /app
 
 # Copy Gradle wrapper and configuration files first for layer caching
@@ -18,10 +18,10 @@ COPY src src
 RUN ./gradlew bootJar --no-daemon -x test
 
 # Extract layers for Spring Boot layered JAR optimization
-RUN java -Djarmode=layertools -jar build/libs/*.jar extract
+RUN java -Djarmode=tools -jar build/libs/*.jar extract --launcher --layers dependencies,spring-boot-loader,snapshot-dependencies,application --destination extracted
 
 # Stage 2: Minimal Production JRE Runtime
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
 
 # Install curl for healthcheck
@@ -34,10 +34,10 @@ RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
 # Copy extracted layers from builder
-COPY --from=builder --chown=spring:spring /app/dependencies/ ./
-COPY --from=builder --chown=spring:spring /app/spring-boot-loader/ ./
-COPY --from=builder --chown=spring:spring /app/snapshot-dependencies/ ./
-COPY --from=builder --chown=spring:spring /app/application/ ./
+COPY --from=builder --chown=spring:spring /app/extracted/dependencies/ ./
+COPY --from=builder --chown=spring:spring /app/extracted/spring-boot-loader/ ./
+COPY --from=builder --chown=spring:spring /app/extracted/snapshot-dependencies/ ./
+COPY --from=builder --chown=spring:spring /app/extracted/application/ ./
 
 # Expose microservice HTTP port
 EXPOSE 8000

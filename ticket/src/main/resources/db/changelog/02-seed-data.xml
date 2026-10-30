@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- 1. SEED COMPANIES -->
+    <changeSet id="seed-companies-01" author="menglang">
+        <insert tableName="companies">
+            <column name="id" valueNumeric="1"/>
+            <column name="code" value="BRONX"/>
+            <column name="name" value="Bronx Technology"/>
+            <column name="legal_name" value="Bronx Technology Solutions Co., Ltd."/>
+            <column name="domain" value="bronx.internal"/>
+            <column name="status" value="active"/>
+            <column name="timezone" value="Asia/Phnom_Penh"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="companies">
+            <column name="id" valueNumeric="2"/>
+            <column name="code" value="UYFC"/>
+            <column name="name" value="UYFC Central"/>
+            <column name="legal_name" value="Union of Youth Federations of Cambodia"/>
+            <column name="domain" value="uyfc.internal"/>
+            <column name="status" value="active"/>
+            <column name="timezone" value="Asia/Phnom_Penh"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+    <!-- 2. SEED ROLES -->
+    <changeSet id="seed-roles-01" author="menglang">
+        <insert tableName="roles">
+            <column name="id" valueNumeric="1"/>
+            <column name="name" value="HQ ADMIN"/>
+            <column name="code" value="hq_admin"/>
+            <column name="description" value="Headquarters Administrator with full access to tickets, settings, clients, and user management."/>
+            <column name="is_system" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="roles">
+            <column name="id" valueNumeric="2"/>
+            <column name="name" value="BRANCH MANAGER"/>
+            <column name="code" value="branch_manager"/>
+            <column name="description" value="Branch Manager managing branch operations and tickets."/>
+            <column name="is_system" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="roles">
+            <column name="id" valueNumeric="3"/>
+            <column name="name" value="BRANCH STAFF"/>
+            <column name="code" value="branch_staff"/>
+            <column name="description" value="Branch staff submitting and tracking issue tickets."/>
+            <column name="is_system" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="roles">
+            <column name="id" valueNumeric="4"/>
+            <column name="name" value="TICKET ADMIN"/>
+            <column name="code" value="ticket_admin"/>
+            <column name="description" value="Ticket Administrator managing ticket lifecycle, triage, and assignment."/>
+            <column name="is_system" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="roles">
+            <column name="id" valueNumeric="5"/>
+            <column name="name" value="PREVIEW"/>
+            <column name="code" value="preview"/>
+            <column name="description" value="Read-only viewer account for tickets and reporting."/>
+            <column name="is_system" valueBoolean="true"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+    <!-- 3. SEED USERS -->
+    <!-- Default Password for all demo users: password123 -->
+    <changeSet id="seed-users-01" author="menglang">
+        <!-- User 1: HQ Admin (Menglang Huo) -->
+        <insert tableName="users">
+            <column name="id" valueNumeric="1"/>
+            <column name="company_id" valueNumeric="1"/>
+            <column name="role_id" valueNumeric="1"/>
+            <column name="username" value="admin"/>
+            <column name="password_hash" value="$2a$12$6Pq160161434o5R35j96gOBp4o0.4gT9Nq3f0g1sV8wU.pE0J3kOi"/>
+            <column name="first_name" value="Menglang"/>
+            <column name="last_name" value="Huo"/>
+            <column name="first_name_kh" value="ម៉េងឡាង"/>
+            <column name="last_name_kh" value="ហួ"/>
+            <column name="email" value="menglang@bronx.internal"/>
+            <column name="phone" value="010 334 556"/>
+            <column name="personal_phone" value="010 334 556"/>
+            <column name="department_id" valueNumeric="1"/>
+            <column name="department_name" value="Core Technology &amp; Infrastructure"/>
+            <column name="division_name" value="Software Engineering"/>
+            <column name="is_expert" valueBoolean="true"/>
+            <column name="accept_card" valueBoolean="true"/>
+            <column name="status" value="active"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- User 2: Branch Manager (Dara Chan) -->
+        <insert tableName="users">
+            <column name="id" valueNumeric="2"/>
+            <column name="company_id" valueNumeric="2"/>
+            <column name="role_id" valueNumeric="2"/>
+            <column name="username" value="branch_manager"/>
+            <column name="password_hash" value="$2a$12$6Pq160161434o5R35j96gOBp4o0.4gT9Nq3f0g1sV8wU.pE0J3kOi"/>
+            <column name="first_name" value="Dara"/>
+            <column name="last_name" value="Chan"/>
+            <column name="first_name_kh" value="ដារា"/>
+            <column name="last_name_kh" value="ចាន់"/>
+            <column name="email" value="dara.chan@uyfc.internal"/>
+            <column name="phone" value="012 889 901"/>
+            <column name="personal_phone" value="012 889 901"/>
+            <column name="department_id" valueNumeric="2"/>
+            <column name="department_name" value="Central Branch Operations"/>
+            <column name="division_name" value="Branch Management"/>
+            <column name="is_expert" valueBoolean="false"/>
+            <column name="accept_card" valueBoolean="false"/>
+            <column name="status" value="active"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- User 3: Branch Staff (Sokha Vann) -->
+        <insert tableName="users">
+            <column name="id" valueNumeric="3"/>
+            <column name="company_id" valueNumeric="1"/>
+            <column name="role_id" valueNumeric="3"/>
+            <column name="username" value="branch_staff"/>
+            <column name="password_hash" value="$2a$12$6Pq160161434o5R35j96gOBp4o0.4gT9Nq3f0g1sV8wU.pE0J3kOi"/>
+            <column name="first_name" value="Sokha"/>
+            <column name="last_name" value="Vann"/>
+            <column name="first_name_kh" value="សុខា"/>
+            <column name="last_name_kh" value="វ៉ាន់"/>
+            <column name="email" value="staff@bronx.internal"/>
+            <column name="phone" value="011 223 344"/>
+            <column name="personal_phone" value="011 223 344"/>
+            <column name="department_id" valueNumeric="3"/>
+            <column name="department_name" value="Support &amp; Services"/>
+            <column name="division_name" value="Field Operations"/>
+            <column name="is_expert" valueBoolean="false"/>
+            <column name="accept_card" valueBoolean="false"/>
+            <column name="status" value="active"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- User 4: Viewer / Preview (Audit Viewer) -->
+        <insert tableName="users">
+            <column name="id" valueNumeric="4"/>
+            <column name="company_id" valueNumeric="1"/>
+            <column name="role_id" valueNumeric="5"/>
+            <column name="username" value="viewer"/>
+            <column name="password_hash" value="$2a$12$6Pq160161434o5R35j96gOBp4o0.4gT9Nq3f0g1sV8wU.pE0J3kOi"/>
+            <column name="first_name" value="Audit"/>
+            <column name="last_name" value="Viewer"/>
+            <column name="first_name_kh" value="សវនកម្ម"/>
+            <column name="last_name_kh" value="អ្នកមើល"/>
+            <column name="email" value="preview@bronx.internal"/>
+            <column name="phone" value="015 667 788"/>
+            <column name="personal_phone" value="015 667 788"/>
+            <column name="department_id" valueNumeric="4"/>
+            <column name="department_name" value="Compliance &amp; Audit"/>
+            <column name="division_name" value="Internal Audit"/>
+            <column name="is_expert" valueBoolean="false"/>
+            <column name="accept_card" valueBoolean="false"/>
+            <column name="status" value="active"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+    <!-- 4. SEED API CLIENTS -->
+    <changeSet id="seed-api-clients-01" author="menglang">
+        <insert tableName="api_clients">
+            <column name="id" valueNumeric="1"/>
+            <column name="company_id" valueNumeric="1"/>
+            <column name="client_id" value="bronx_mobile_app_prod"/>
+            <column name="client_secret" value="4d2aff85e28a4c3395d9082bfceb1784"/>
+            <column name="name" value="Bronx Mobile Storefront (iOS &amp; Android)"/>
+            <column name="rate_limit" value="500 req/min"/>
+            <column name="allowed_types" value="bug,enhancement,question"/>
+            <column name="status" value="active"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="api_clients">
+            <column name="id" valueNumeric="2"/>
+            <column name="company_id" valueNumeric="1"/>
+            <column name="client_id" value="pos_sync_service_v2"/>
+            <column name="client_secret" value="9e7b2311f4564811b51e44c207d81a93"/>
+            <column name="name" value="Branch POS Terminal Sync Service"/>
+            <column name="rate_limit" value="1200 req/min"/>
+            <column name="allowed_types" value="bug,task"/>
+            <column name="status" value="active"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="api_clients">
+            <column name="id" valueNumeric="3"/>
+            <column name="company_id" valueNumeric="1"/>
+            <column name="client_id" value="helpdesk_webhook_int"/>
+            <column name="client_secret" value="1a8c9034c56740b28ec4b953a793c2de"/>
+            <column name="name" value="Customer Helpdesk Ingestion Webhook"/>
+            <column name="rate_limit" value="300 req/min"/>
+            <column name="allowed_types" value="bug,question"/>
+            <column name="status" value="active"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="api_clients">
+            <column name="id" valueNumeric="4"/>
+            <column name="company_id" valueNumeric="1"/>
+            <column name="client_id" value="payment_alert_service"/>
+            <column name="client_secret" value="7f44a190bc234a9190db99a071ef68d1"/>
+            <column name="name" value="E-Commerce Payment Gateway Monitor"/>
+            <column name="rate_limit" value="600 req/min"/>
+            <column name="allowed_types" value="bug,task"/>
+            <column name="status" value="active"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="api_clients">
+            <column name="id" valueNumeric="5"/>
+            <column name="company_id" valueNumeric="2"/>
+            <column name="client_id" value="erp_legacy_batch_sync"/>
+            <column name="client_secret" value="3d10ee92cb344078a6311054e9bc3321"/>
+            <column name="name" value="Legacy Inventory ERP Sync (Archived)"/>
+            <column name="rate_limit" value="50 req/min"/>
+            <column name="allowed_types" value="task"/>
+            <column name="status" value="inactive"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

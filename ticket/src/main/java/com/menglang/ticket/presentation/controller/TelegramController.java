@@ -19,7 +19,7 @@ public class TelegramController {
 
     private final TelegramUseCase telegramUseCase;
 
-    @PostMapping("/api/v1/tickets/telegram/invite-link")
+    @PostMapping({"/api/v1/tickets/telegram/invite-link", "/api/ticket/telegram/invite-link"})
     public Mono<ApiResponse<Map<String, String>>> generateInviteLink(ServerWebExchange exchange) {
         Long companyId = (Long) exchange.getAttributes().getOrDefault("COMPANY_ID", 1L);
         Long userId = (Long) exchange.getAttributes().getOrDefault("USER_ID", 1L);
@@ -28,7 +28,7 @@ public class TelegramController {
                 .map(link -> ApiResponse.success(Map.of("invite_url", link), "Invite link generated."));
     }
 
-    @GetMapping({"/api/v1/tickets/telegram/counts", "/api/v1/tickets/telegram/stats"})
+    @GetMapping({"/api/v1/tickets/telegram/counts", "/api/v1/tickets/telegram/stats", "/api/ticket/telegram/counts"})
     public Mono<ApiResponse<Map<String, Object>>> getCounts(ServerWebExchange exchange) {
         Long companyId = (Long) exchange.getAttributes().getOrDefault("COMPANY_ID", 1L);
 
@@ -36,7 +36,7 @@ public class TelegramController {
                 .map(ApiResponse::success);
     }
 
-    @GetMapping({"/api/v1/tickets/telegram/invites/total-count", "/api/v1/tickets/telegram/invites/count"})
+    @GetMapping({"/api/v1/tickets/telegram/invites/total-count", "/api/v1/tickets/telegram/invites/count", "/api/ticket/telegram/invites/total-count"})
     public Mono<ApiResponse<Map<String, Object>>> getTotalInviteCount(ServerWebExchange exchange) {
         Long companyId = (Long) exchange.getAttributes().getOrDefault("COMPANY_ID", 1L);
 
@@ -44,7 +44,7 @@ public class TelegramController {
                 .map(count -> ApiResponse.success(Map.of("total", count, "count", count)));
     }
 
-    @GetMapping({"/api/v1/tickets/telegram/subscribers/total-count", "/api/v1/tickets/telegram/subscribers/count"})
+    @GetMapping({"/api/v1/tickets/telegram/subscribers/total-count", "/api/v1/tickets/telegram/subscribers/count", "/api/ticket/telegram/subscribers/total-count"})
     public Mono<ApiResponse<Map<String, Object>>> getTotalSubscribersCount(ServerWebExchange exchange) {
         Long companyId = (Long) exchange.getAttributes().getOrDefault("COMPANY_ID", 1L);
 
@@ -52,7 +52,7 @@ public class TelegramController {
                 .map(count -> ApiResponse.success(Map.of("total", count, "count", count)));
     }
 
-    @GetMapping("/api/v1/tickets/telegram/subscribers")
+    @GetMapping({"/api/v1/tickets/telegram/subscribers", "/api/ticket/telegram/subscribers"})
     public Mono<ApiResponse<List<TelegramSubscriberResponse>>> listSubscribers(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10", name = "per_page") int perPage,
@@ -66,7 +66,7 @@ public class TelegramController {
                 .map(ApiResponse::success);
     }
 
-    @PatchMapping("/api/v1/tickets/telegram/subscribers/{chatId}/status")
+    @PatchMapping({"/api/v1/tickets/telegram/subscribers/{chatId}/status", "/api/ticket/telegram/subscribers/{chatId}/status"})
     public Mono<ApiResponse<TelegramSubscriberResponse>> updateSubscriberStatus(
             @PathVariable String chatId,
             @RequestBody(required = false) Map<String, Object> body,
@@ -81,7 +81,7 @@ public class TelegramController {
                 .map(sub -> ApiResponse.success(TelegramSubscriberResponse.fromDomain(sub), "Telegram notification status updated successfully."));
     }
 
-    @PostMapping({"/api/v1/tickets/telegram/subscribers/{chatId}/test", "/api/v1/tickets/telegram/test-notification"})
+    @PostMapping({"/api/v1/tickets/telegram/subscribers/{chatId}/test", "/api/v1/tickets/telegram/test-notification", "/api/ticket/telegram/subscribers/{chatId}/test"})
     public Mono<ApiResponse<Map<String, Object>>> sendTestNotification(
             @PathVariable(required = false) String chatId,
             @RequestBody(required = false) Map<String, Object> body,
@@ -102,7 +102,7 @@ public class TelegramController {
                 .map(res -> ApiResponse.success(res, (String) res.getOrDefault("message", "Test notification sent.")));
     }
 
-    @DeleteMapping("/api/v1/tickets/telegram/subscribers/{chatId}")
+    @DeleteMapping({"/api/v1/tickets/telegram/subscribers/{chatId}", "/api/ticket/telegram/subscribers/{chatId}"})
     public Mono<ApiResponse<Void>> removeSubscriber(
             @PathVariable String chatId,
             ServerWebExchange exchange) {

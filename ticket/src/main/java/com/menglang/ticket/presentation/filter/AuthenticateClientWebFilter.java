@@ -1,6 +1,6 @@
 package com.menglang.ticket.presentation.filter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.menglang.ticket.domain.port.in.ApiClientUseCase;
 import com.menglang.ticket.presentation.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +31,7 @@ public class AuthenticateClientWebFilter implements WebFilter {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().value();
 
-        if (!path.startsWith("/api/v1/client/")) {
+        if (!path.startsWith("/api/v1/client/") && !path.startsWith("/api/ticket/client")) {
             return chain.filter(exchange);
         }
 

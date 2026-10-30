@@ -14,18 +14,23 @@ import com.menglang.ticket.presentation.response.TicketResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.http.codec.multipart.FormFieldPart;
+import org.springframework.http.codec.multipart.Part;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/tickets")
+@RequestMapping({"/api/v1/tickets", "/api/ticket", "/api/tickets"})
 @RequiredArgsConstructor
 public class TicketController {
 
@@ -83,6 +88,8 @@ public class TicketController {
                 .sortDir(sortDir)
                 .build();
 
+        log.info("Fetching tickets: page={}, per_page={}, status={}, priority={}, search='{}'", page, perPage, status, priority, finalSearch);
+
         return ticketUseCase.listTickets(query)
                 .map(facetResult -> {
                     List<TicketListResponse> content = facetResult.getContent().stream()
@@ -109,7 +116,7 @@ public class TicketController {
                 });
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ApiResponse<TicketResponse>> store(
             @Valid @RequestBody CreateTicketRequest request,
             ServerWebExchange exchange) {
@@ -133,8 +140,80 @@ public class TicketController {
                 .createdBy(userId)
                 .build();
 
+        log.info("Creating ticket: title='{}', type={}, priority={}, source={}", ticket.getTitle(), ticket.getType(), ticket.getPriority(), ticket.getSource());
+
         return ticketUseCase.createTicket(ticket, Flux.empty(), List.of())
                 .map(created -> ApiResponse.success(TicketResponse.fromDomain(created), "Created successfully."));
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Mono<ApiResponse<TicketResponse>> storeMultipart(ServerWebExchange exchange) {
+        Long companyId = (Long) exchange.getAttributes().getOrDefault("COMPANY_ID", 1L);
+        Long userId = (Long) exchange.getAttributes().getOrDefault("USER_ID", 1L);
+
+        return exchange.getMultipartData().flatMap(multipartMap -> {
+            String title = getFormField(multipartMap, "title");
+            String description = getFormField(multipartMap, "description");
+            if (description == null) {
+                description = getFormField(multipartMap, "descritpion");
+            }
+            String type = getFormField(multipartMap, "type", "bug");
+            String priority = getFormField(multipartMap, "priority", "medium");
+            String source = getFormField(multipartMap, "source", "portal");
+            String reporterName = getFormField(multipartMap, "reporter_name");
+            String reporterEmail = getFormField(multipartMap, "reporter_email");
+            String phone = getFormField(multipartMap, "reporter_phone", getFormField(multipartMap, "phone"));
+            String externalRef = getFormField(multipartMap, "external_ref");
+
+            Map<String, Object> metadata = new HashMap<>();
+            if (phone != null) metadata.put("reporter_phone", phone);
+            String clientName = getFormField(multipartMap, "client_name");
+            if (clientName != null) metadata.put("api_client_name", clientName);
+
+            Ticket ticket = Ticket.builder()
+                    .companyId(companyId)
+                    .title(title)
+                    .description(description)
+                    .type(TicketType.fromValue(type))
+                    .priority(TicketPriority.fromValue(priority))
+                    .source(source)
+                    .externalRef(externalRef)
+                    .reporterName(reporterName)
+                    .reporterEmail(reporterEmail)
+                    .phone(phone)
+                    .metadata(metadata)
+                    .createdBy(userId)
+                    .build();
+
+            List<FilePart> fileParts = new ArrayList<>();
+            for (String key : List.of("files", "files[]", "file", "attachments", "attachments[]", "attachment")) {
+                List<Part> parts = multipartMap.get(key);
+                if (parts != null) {
+                    for (Part part : parts) {
+                        if (part instanceof FilePart fp) {
+                            fileParts.add(fp);
+                        }
+                    }
+                }
+            }
+
+            log.info("Creating multipart ticket: title='{}', type={}, priority={}, filesCount={}", ticket.getTitle(), ticket.getType(), ticket.getPriority(), fileParts.size());
+
+            return ticketUseCase.createTicket(ticket, Flux.fromIterable(fileParts), List.of())
+                    .map(created -> ApiResponse.success(TicketResponse.fromDomain(created), "Created successfully."));
+        });
+    }
+
+    private String getFormField(Map<String, List<Part>> map, String key) {
+        return getFormField(map, key, null);
+    }
+
+    private String getFormField(Map<String, List<Part>> map, String key, String defaultVal) {
+        List<Part> parts = map.get(key);
+        if (parts != null && !parts.isEmpty() && parts.get(0) instanceof FormFieldPart ffp) {
+            return ffp.value();
+        }
+        return defaultVal;
     }
 
     @GetMapping("/{id}")
@@ -144,6 +223,7 @@ public class TicketController {
             ServerWebExchange exchange) {
 
         Long companyId = (Long) exchange.getAttributes().getOrDefault("COMPANY_ID", 1L);
+        log.info("Fetching ticket details for id: {}", id);
 
         return ticketUseCase.getTicketById(id, companyId, includeInternal)
                 .map(ticket -> ApiResponse.success(TicketResponse.fromDomain(ticket)));
@@ -157,6 +237,7 @@ public class TicketController {
 
         Long companyId = (Long) exchange.getAttributes().getOrDefault("COMPANY_ID", 1L);
         Long userId = (Long) exchange.getAttributes().getOrDefault("USER_ID", 1L);
+        log.info("Updating ticket '{}': updates={}", id, request.toUpdateMap());
 
         return ticketUseCase.updateTicket(id, companyId, request.toUpdateMap(), userId)
                 .map(updated -> ApiResponse.success(TicketResponse.fromDomain(updated), "Updated successfully."));
@@ -169,6 +250,7 @@ public class TicketController {
 
         Long companyId = (Long) exchange.getAttributes().getOrDefault("COMPANY_ID", 1L);
         Long userId = (Long) exchange.getAttributes().getOrDefault("USER_ID", 1L);
+        log.info("Deleting ticket '{}' by user {}", id, userId);
 
         return ticketUseCase.deleteTicket(id, companyId, userId)
                 .map(deleted -> ApiResponse.success(null, "Deleted successfully."));

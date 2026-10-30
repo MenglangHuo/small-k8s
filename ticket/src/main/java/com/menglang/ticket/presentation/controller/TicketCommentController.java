@@ -24,7 +24,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/tickets/{ticketId}/comments")
+@RequestMapping({"/api/v1/tickets/{ticketId}/comments", "/api/ticket/{ticketId}/comments"})
 @RequiredArgsConstructor
 public class TicketCommentController {
 

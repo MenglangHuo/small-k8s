@@ -156,25 +156,30 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private Mono<Void> initApiClient() {
-        return apiClientRepositoryPort.count()
-                .filter(count -> count == 0)
-                .flatMap(count -> {
-                    String secret = "secret_demo_uyfc_12345";
-                    String secretHash = sha256(secret);
+        ApiClient defaultAdminClient = ApiClient.builder()
+                .companyId(1L)
+                .clientId("client_z650sknysn8xadup")
+                .clientSecret("sec_wZk0KqIlvKJaNNxZfYbXyM1722Jn71Vi")
+                .name("Default Admin Portal Client")
+                .isActive(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
 
-                    ApiClient client = ApiClient.builder()
-                            .companyId(1L)
-                            .clientId("client_demo_uyfc")
-                            .clientSecret(secretHash)
-                            .name("Demo UYFC Portal Client")
-                            .isActive(true)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build();
+        ApiClient demoClient = ApiClient.builder()
+                .companyId(1L)
+                .clientId("client_demo_uyfc")
+                .clientSecret("secret_demo_uyfc_12345")
+                .name("Demo UYFC Portal Client")
+                .isActive(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
 
-                    log.info("Seeding default demo API Client: client_demo_uyfc");
-                    return apiClientRepositoryPort.save(client);
-                })
+        return apiClientRepositoryPort.findByClientId("client_z650sknysn8xadup")
+                .switchIfEmpty(apiClientRepositoryPort.save(defaultAdminClient))
+                .then(apiClientRepositoryPort.findByClientId("client_demo_uyfc")
+                        .switchIfEmpty(apiClientRepositoryPort.save(demoClient)))
                 .then();
     }
 

@@ -23,6 +23,8 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+k8s/02-secrets.yaml
+.mono-ticket-secrets
 
 # Logs
 *.log

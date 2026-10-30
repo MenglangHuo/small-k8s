@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- 1. CREATE TABLE: companies -->
+    <changeSet id="01-create-companies" author="menglang">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="companies"/></not>
+        </preConditions>
+        <createTable tableName="companies">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_companies" nullable="false"/>
+            </column>
+            <column name="code" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_companies_code"/>
+            </column>
+            <column name="name" type="VARCHAR(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="legal_name" type="VARCHAR(255)"/>
+            <column name="domain" type="VARCHAR(100)"/>
+            <column name="status" type="VARCHAR(30)" defaultValue="active">
+                <constraints nullable="false"/>
+            </column>
+            <column name="timezone" type="VARCHAR(50)" defaultValue="Asia/Phnom_Penh">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="companies" indexName="idx_companies_code">
+            <column name="code"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 2. CREATE TABLE: roles -->
+    <changeSet id="02-create-roles" author="menglang">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="roles"/></not>
+        </preConditions>
+        <createTable tableName="roles">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_roles" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_roles_name"/>
+            </column>
+            <column name="code" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_roles_code"/>
+            </column>
+            <column name="description" type="VARCHAR(255)"/>
+            <column name="is_system" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="roles" indexName="idx_roles_code">
+            <column name="code"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 3. CREATE TABLE: users -->
+    <changeSet id="03-create-users" author="menglang">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="users"/></not>
+        </preConditions>
+        <createTable tableName="users">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_users" nullable="false"/>
+            </column>
+            <column name="company_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_users_company" references="companies(id)"/>
+            </column>
+            <column name="role_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_users_role" references="roles(id)"/>
+            </column>
+            <column name="username" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_users_username"/>
+            </column>
+            <column name="password_hash" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="first_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="first_name_kh" type="VARCHAR(100)"/>
+            <column name="last_name_kh" type="VARCHAR(100)"/>
+            <column name="email" type="VARCHAR(150)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_users_email"/>
+            </column>
+            <column name="phone" type="VARCHAR(50)"/>
+            <column name="personal_phone" type="VARCHAR(50)"/>
+            <column name="department_id" type="BIGINT"/>
+            <column name="department_name" type="VARCHAR(150)"/>
+            <column name="division_name" type="VARCHAR(150)"/>
+            <column name="is_expert" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="accept_card" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(30)" defaultValue="active">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="users" indexName="idx_users_company_id">
+            <column name="company_id"/>
+        </createIndex>
+        <createIndex tableName="users" indexName="idx_users_role_id">
+            <column name="role_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 4. CREATE TABLE: api_clients -->
+    <changeSet id="04-create-api-clients" author="menglang">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="api_clients"/></not>
+        </preConditions>
+        <createTable tableName="api_clients">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_api_clients" nullable="false"/>
+            </column>
+            <column name="company_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_api_clients_company" references="companies(id)"/>
+            </column>
+            <column name="client_id" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_api_clients_client_id"/>
+            </column>
+            <column name="client_secret" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rate_limit" type="VARCHAR(50)" defaultValue="500 req/min">
+                <constraints nullable="false"/>
+            </column>
+            <column name="allowed_types" type="VARCHAR(255)" defaultValue="bug,enhancement,question,task">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(30)" defaultValue="active">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_ping" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="api_clients" indexName="idx_api_clients_client_id">
+            <column name="client_id"/>
+        </createIndex>
+        <createIndex tableName="api_clients" indexName="idx_api_clients_company_id">
+            <column name="company_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,11 @@
+# --------------------------------------------------
+# Namespace: Isolated environment for the ticket app
+# --------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ticket-prod
+  labels:
+    app.kubernetes.io/part-of: mono-ticket
+    app.kubernetes.io/name: mono-ticket
+    app.kubernetes.io/environment: production

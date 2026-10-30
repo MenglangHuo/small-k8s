@@ -28,7 +28,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/client/tickets")
+@RequestMapping({"/api/v1/client/tickets", "/api/ticket/client"})
 @RequiredArgsConstructor
 public class ClientTicketController {
 
@@ -67,6 +67,9 @@ public class ClientTicketController {
                 .metadata(metadata)
                 .createdBy(0L)
                 .build();
+
+        log.info("Client API ticket submitted (JSON): title='{}', client='{}', type='{}', priority='{}'",
+                request.getTitle(), client != null ? client.getName() : "anonymous", request.getType(), request.getPriority());
 
         return ticketUseCase.createTicket(ticket, Flux.empty(), request.getFiles())
                 .map(created -> ApiResponse.success(TicketResponse.fromDomain(created), "Ticket has been submitted successfully."));
@@ -127,6 +130,9 @@ public class ClientTicketController {
                     }
                 }
             }
+
+            log.info("Client API ticket submitted (multipart): title='{}', client='{}', type='{}', priority='{}', filesCount={}",
+                    title, client != null ? client.getName() : "anonymous", type, priority, fileParts.size());
 
             return ticketUseCase.createTicket(ticket, Flux.fromIterable(fileParts), List.of())
                     .map(created -> ApiResponse.success(TicketResponse.fromDomain(created), "Ticket has been submitted successfully."));

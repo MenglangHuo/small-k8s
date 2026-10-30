@@ -1,0 +1,27 @@
+# --------------------------------------------------
+# ConfigMap: Non-sensitive environment variables
+# --------------------------------------------------
+# These values are injected into pods via envFrom.
+# Edit the values below to match your environment.
+# --------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ticket-config
+  namespace: ticket-prod
+  labels:
+    app.kubernetes.io/part-of: mono-ticket
+    app.kubernetes.io/component: config
+data:
+  # ---- Spring Boot ----
+  SERVER_PORT: "8000"
+  SPRING_PROFILES_ACTIVE: "prod"
+
+  # ---- MongoDB (in-cluster) ----
+  # MONGODB_URI is set on the API Deployment so credentials come from a Secret.
+
+  # ---- AWS S3 ----
+  AWS_DEFAULT_REGION: "us-east-1"
+
+  # ---- Ticket Engine ----
+  TICKET_DEFAULT_PREFIX: "TCK"
