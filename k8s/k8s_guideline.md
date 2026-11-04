@@ -96,7 +96,6 @@ Internet Users
   │  (Nginx serving Vue SPA)│    │  (Spring Boot WebFlux)│
   │                         │    │                      │
   │  /api/* ────proxy──────────► │  /api/*              │
-  │  /token ───proxy──────────►  │  /token              │
   │  /login ───proxy──────────►  │  /login              │
   │  /files ───proxy──────────►  │  /files              │
   │  /* ────── Vue Router   │    │                      │

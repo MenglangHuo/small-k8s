@@ -11,7 +11,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -37,34 +36,6 @@ class AuthControllerTest {
     void setUp() {
         tokenService = new TokenService();
         authController = new AuthController(userRepositoryPort, tokenService);
-        ReflectionTestUtils.setField(authController, "configuredApiSecret", "test-api-secret");
-    }
-
-    @Test
-    @DisplayName("generateToken succeeds with valid API secret")
-    void testGenerateTokenValidSecret() {
-        Mono<ResponseEntity<Map<String, Object>>> result = authController.generateTokenDefault("test-api-secret");
-
-        StepVerifier.create(result)
-                .assertNext(res -> {
-                    assertEquals(HttpStatus.OK, res.getStatusCode());
-                    assertTrue((Boolean) res.getBody().get("success"));
-                    assertNotNull(res.getBody().get("access_token"));
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    @DisplayName("generateToken rejects with invalid API secret")
-    void testGenerateTokenInvalidSecret() {
-        Mono<ResponseEntity<Map<String, Object>>> result = authController.generateTokenDefault("wrong_secret");
-
-        StepVerifier.create(result)
-                .assertNext(res -> {
-                    assertEquals(HttpStatus.UNAUTHORIZED, res.getStatusCode());
-                    assertFalse((Boolean) res.getBody().get("success"));
-                })
-                .verifyComplete();
     }
 
     @Test

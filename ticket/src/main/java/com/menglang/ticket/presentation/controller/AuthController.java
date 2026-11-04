@@ -5,7 +5,6 @@ import com.menglang.ticket.domain.port.out.UserRepositoryPort;
 import com.menglang.ticket.infrastructure.security.TokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,49 +29,6 @@ public class AuthController {
 
     private final UserRepositoryPort userRepositoryPort;
     private final TokenService tokenService;
-
-    @Value("${ticket.api-secret:}")
-    private String configuredApiSecret;
-
-    @PostMapping(value = "/token", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
-    public Mono<ResponseEntity<Map<String, Object>>> generateTokenMultipart(ServerWebExchange exchange) {
-        return exchange.getMultipartData().flatMap(multipartMap -> {
-            String secret = getFormField(multipartMap, "secret", null);
-            return handleTokenGeneration(secret);
-        });
-    }
-
-    @PostMapping(value = "/token", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<Map<String, Object>>> generateTokenJson(@RequestBody(required = false) Map<String, Object> body) {
-        String secret = body != null && body.containsKey("secret") ? String.valueOf(body.get("secret")) : null;
-        return handleTokenGeneration(secret);
-    }
-
-    @PostMapping(value = "/token")
-    public Mono<ResponseEntity<Map<String, Object>>> generateTokenDefault(@RequestParam(required = false) String secret) {
-        return handleTokenGeneration(secret);
-    }
-
-    private Mono<ResponseEntity<Map<String, Object>>> handleTokenGeneration(String secret) {
-        log.info("Client requested API application token generation");
-
-        if (secret == null || secret.isBlank() || !secret.trim().equals(configuredApiSecret.trim())) {
-            log.warn("Rejected /token request: invalid API secret");
-            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "success", false,
-                    "message", "Invalid API secret key"
-            )));
-        }
-
-        String token = tokenService.createAppToken();
-        return Mono.just(ResponseEntity.ok(Map.of(
-                "success", true,
-                "access_token", token,
-                "token_type", "Bearer",
-                "expires_in", 86400,
-                "message", "Token generated successfully"
-        )));
-    }
 
     @PostMapping(value = {"/login", "/signin"}, consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
     public Mono<ResponseEntity<Map<String, Object>>> loginMultipart(ServerWebExchange exchange) {

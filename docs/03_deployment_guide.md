@@ -28,7 +28,7 @@ The following dependency chain outlines the exact order in which Kubernetes reso
                                          ▼
                               [ 05-ticket-admin.yaml ]
                     Vue.js 3 SPA Admin Dashboard (Nginx Proxy)
-                     (Reverse proxies /api, /token, /login to API)
+                     (Reverse proxies /api, /login to API)
                                          │
                                          ▼
                             [ 07-cluster-issuer.yaml ]
@@ -539,7 +539,7 @@ curl -s https://api.yourdomain.com/actuator/health
 1. Open `https://yourdomain.com` in your browser.
 2. Press `F12` to open Developer Tools → switch to the **Network** tab.
 3. Log in or interact with the ticket dashboard.
-4. Verify that requests to `/token`, `/login`, or `/api/*` succeed with `200 OK`.
+4. Verify that requests to `/login` or `/api/*` succeed with `200 OK`.
    *(Nginx smoothly proxies these internal calls to `ticket-api-svc:8000` inside Kubernetes without triggering browser CORS issues).*
 
 ---

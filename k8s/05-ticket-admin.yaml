@@ -4,7 +4,6 @@
 # The frontend is a Vue.js SPA served by Nginx.
 # Nginx also acts as a reverse proxy:
 #   /api/*       → ticket-api-svc:8000
-#   /token       → ticket-api-svc:8000
 #   /login       → ticket-api-svc:8000
 #   /two-factor  → ticket-api-svc:8000
 #   /files       → ticket-api-svc:8000
@@ -64,14 +63,6 @@ data:
         }
 
         # ---- Auth & File Endpoints → Backend ----
-        location /token {
-            proxy_pass http://ticket-api-svc.ticket-prod.svc.cluster.local:8000;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-
         location /login {
             proxy_pass http://ticket-api-svc.ticket-prod.svc.cluster.local:8000;
             proxy_set_header Host $host;

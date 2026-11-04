@@ -43,7 +43,7 @@ Internet Users / External Clients
 │  │   ├── Service: ticket-admin-svc (ClusterIP :80)                                │  │
 │  │   │    └── Pod: ticket-admin (Vue.js 3 SPA on Nginx, Reverse Proxy)           │  │
 │  │   │         ├── Serves HTML/JS/CSS assets with caching headers                │  │
-│  │   │         └── Internal Proxy (/api/*, /token, /login) ─────────────────┐    │  │
+│  │   │         └── Internal Proxy (/api/*, /login) ─────────────────────────┐    │  │
 │  │   │                                                                      │    │  │
 │  │   ├── Service: ticket-api-svc (ClusterIP :8000) ◄────────────────────────┘    │  │
 │  │   │    └── Pod: ticket-api (Spring Boot 4.1 WebFlux, Java 25, SerialGC)       │  │
