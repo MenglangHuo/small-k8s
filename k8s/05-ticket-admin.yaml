@@ -62,31 +62,28 @@ data:
             client_max_body_size 20m;
         }
 
-        # ---- Auth & File Endpoints → Backend ----
-        location /login {
+        # ---- Auth & 2FA: Method-Aware Routing ----
+        # POST requests are proxied to the Spring Boot backend API.
+        # GET requests fall back to index.html so Vue Router handles the SPA route.
+        location ~ ^/(login|signin|two-factor)$ {
+            error_page 418 = @auth_api;
+            if ($request_method = POST) {
+                return 418;
+            }
+            try_files $uri $uri/ /index.html;
+        }
+
+        location @auth_api {
             proxy_pass http://ticket-api-svc.ticket-prod.svc.cluster.local:8000;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_read_timeout 60s;
+            proxy_send_timeout 60s;
         }
 
-        location /signin {
-            proxy_pass http://ticket-api-svc.ticket-prod.svc.cluster.local:8000;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-
-        location /two-factor {
-            proxy_pass http://ticket-api-svc.ticket-prod.svc.cluster.local:8000;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-
+        # ---- File Upload/Download Endpoints → Backend ----
         location /files {
             proxy_pass http://ticket-api-svc.ticket-prod.svc.cluster.local:8000;
             proxy_set_header Host $host;
@@ -94,6 +91,12 @@ data:
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
             client_max_body_size 20m;
+        }
+
+        # ---- SPA Entrypoint: Prevent Caching of HTML ----
+        location = /index.html {
+            add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" always;
+            expires -1;
         }
 
         # ---- SPA Fallback ----
@@ -136,7 +139,7 @@ spec:
         - name: ticket-admin
           # Pre-built release image on Docker Hub
           image: menglang6969/ticket-admin:1.0.0
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
               name: http

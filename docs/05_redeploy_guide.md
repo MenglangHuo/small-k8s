@@ -227,6 +227,25 @@ Ingress rules update dynamically in Traefik within seconds. **No pod restart is 
 
 ---
 
+### Scenario D: Updating Nginx Reverse Proxy Config (`05-ticket-admin.yaml`)
+Because the `nginx-config` ConfigMap is mounted into the frontend container using a `subPath` mount (`default.conf`), Kubernetes **does not** automatically propagate ConfigMap changes into already running pods.
+
+Whenever you edit reverse proxy rules, caching headers, or routes in `05-ticket-admin.yaml`:
+1. Apply the updated manifest:
+   ```bash
+   kubectl apply -f 05-ticket-admin.yaml
+   ```
+2. Trigger a rolling restart to force the pod to mount the new configuration:
+   ```bash
+   kubectl rollout restart deployment/ticket-admin -n ticket-prod
+   ```
+3. Verify the new pod is running:
+   ```bash
+   kubectl rollout status deployment/ticket-admin -n ticket-prod
+   ```
+
+---
+
 ## 5. One-Command Automation via `deploy.sh`
 
 The repository provides the `k8s/deploy.sh` CLI for everyday management:
