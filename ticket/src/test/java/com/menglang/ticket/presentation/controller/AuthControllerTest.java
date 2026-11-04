@@ -98,6 +98,33 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("loginDefault succeeds with direct parameters")
+    void testLoginDefaultSuccess() {
+        User user = User.builder()
+                .userId(1L)
+                .username("admin")
+                .email("admin@uyfc.org")
+                .fullName("System Administrator")
+                .passwordHash(defaultHash)
+                .roleNames(List.of("ADMIN"))
+                .isActive(true)
+                .build();
+
+        when(userRepositoryPort.findByUsername("admin")).thenReturn(Mono.just(user));
+
+        Mono<ResponseEntity<Map<String, Object>>> result = authController.loginDefault("admin", "Password@123");
+
+        StepVerifier.create(result)
+                .assertNext(res -> {
+                    assertEquals(HttpStatus.OK, res.getStatusCode());
+                    assertTrue((Boolean) res.getBody().get("success"));
+                    assertNotNull(res.getBody().get("access_token"));
+                    assertEquals("ADMIN", res.getBody().get("role"));
+                })
+                .verifyComplete();
+    }
+
+    @Test
     @DisplayName("login rejects when password is incorrect")
     void testLoginWrongPassword() {
         User user = User.builder()

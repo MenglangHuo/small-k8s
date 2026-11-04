@@ -13,12 +13,12 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - ticket-admin.yourdomain.com
-        - ticket-api.yourdomain.com
+        - ticket-admin.menglanghuo.online
+        - ticket-api.menglanghuo.online
       secretName: ticket-prod-tls-secret
   rules:
     # 1. Frontend Vue Admin SPA
-    - host: ticket-admin.yourdomain.com
+    - host: ticket-admin.menglanghuo.online
       http:
         paths:
           - path: /
@@ -30,7 +30,7 @@ spec:
                   number: 80
 
     # 2. Backend Spring Boot WebFlux API
-    - host: ticket-api.yourdomain.com
+    - host: ticket-api.menglanghuo.online
       http:
         paths:
           - path: /

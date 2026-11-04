@@ -392,16 +392,16 @@ Running an Ingress Controller, Cert-Manager, Spring Boot, Vue.js, and MongoDB on
 | **Cert-Manager (3 pods)** | ~40 MiB | ~80 MiB | Dormant except during certificate renewals |
 | **MongoDB 7.0** | 64 MiB | 200 MiB | Lean WiredTiger cache for dev/prod workload |
 | **Vue.js Admin (Nginx)** | 32 MiB | 96 MiB | Static file serving + reverse proxy only |
-| **Spring Boot API (JVM)** | 200 MiB | **400 MiB** | Capped heap (`-Xmx256m`), SerialGC, `Recreate` rollout |
+| **Spring Boot API (JVM)** | 200 MiB | **400 MiB** | Capped heap (`-Xmx256m`), SerialGC, HPA to 2 pods, RollingUpdate |
 | **Total Estimated Footprint** | **~620 MiB** | **~1136 MiB** | **Absorbed by 1024 MiB RAM + 2048 MiB Swap** |
 
 ### Three Critical Safety Mechanisms:
 1. **Linux 2 GB Swap (`vm.swappiness=10`)**:
-   Provides safety buffer during startup memory spikes. Swappiness is set low so the kernel only swaps pages when physical RAM is genuinely exhausted.
+   Provides safety buffer during startup memory spikes and HPA traffic surges. Swappiness is set low so the kernel only swaps pages when physical RAM is genuinely exhausted.
 2. **JVM Serial Garbage Collector (`-XX:+UseSerialGC`)**:
    Standard JVM G1GC spawns multiple background collector threads that inflate RAM usage. SerialGC uses a single lightweight collector thread, ideal for 1 vCPU instances.
-3. **`strategy: Recreate` on Spring Boot**:
-   Default Kubernetes deployments use `RollingUpdate` (starting the new pod before terminating the old one). On 1 GB RAM, having two Spring Boot JVMs running at the same time consumes ~700 MB of RAM and triggers an OOM kill. `Recreate` terminates the old container first, freeing RAM before starting the new one.
+3. **Zero-Downtime `RollingUpdate` & HPA Headroom**:
+   `ticket-api` utilizes `RollingUpdate` (`maxSurge: 1, maxUnavailable: 0`) and autoscales up to 2 instances under traffic. Supported by the 2 GB swap buffer, having two JVMs active concurrently (~400–500 MB footprint) runs safely without triggering kernel OOM errors.
 
 ---
 

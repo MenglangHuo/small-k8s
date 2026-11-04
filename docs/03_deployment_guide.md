@@ -23,7 +23,7 @@ The following dependency chain outlines the exact order in which Kubernetes reso
                                          ▼
                                [ 04-ticket-api.yaml ]
                       Spring Boot WebFlux REST API (Java 25)
-                     (Waits for DB, startup probe: /actuator/health)
+                    (RollingUpdate: maxSurge 1, maxUnavailable 0)
                                          │
                                          ▼
                               [ 05-ticket-admin.yaml ]
@@ -38,6 +38,11 @@ The following dependency chain outlines the exact order in which Kubernetes reso
                                 [ 06-ingress.yaml ]
                      Traefik Ingress + HTTPS Redirect Middleware
                      Binds yourdomain.com, www, and api subdomains
+                                         │
+                                         ▼
+                            [ 09-ticket-api-hpa.yaml ]
+                    HorizontalPodAutoscaler (HPA: 1 -> 2 instances)
+                    Autoscales on traffic (CPU > 50% or Mem > 80%)
 ```
 
 ---
@@ -317,9 +322,9 @@ kubectl apply -f 04-ticket-api.yaml
 ```
 
 > [!NOTE]
-> **Spring Boot Initialization Time on `t3.micro`:**
+> **Spring Boot Initialization Time & Zero-Downtime Rolling Strategy:**
 > With 1 vCPU and Java memory capped at `-XX:+UseSerialGC -Xmx256m`, cold startup takes approximately **60 to 90 seconds**.
-> The deployment defines a resilient `startupProbe` that tests `/actuator/health` every 10 seconds (allowing up to 300 seconds total).
+> The deployment is configured with `strategy: RollingUpdate` (`maxSurge: 1`, `maxUnavailable: 0`) along with a resilient `startupProbe` testing `/actuator/health` every 10 seconds. During updates, the active container serves live traffic until the new container passes health checks, guaranteeing **zero downtime**. The 2 GB swap space safely absorbs memory headroom during rolling pod transitions.
 
 Monitor the API pod:
 ```bash
@@ -399,6 +404,41 @@ Expected output:
 ```text
 NAME             CLASS     HOSTS                                        ADDRESS          PORTS     AGE
 ticket-ingress   traefik   yourdomain.com,www.yourdomain.com,api....    <YOUR_ELASTIC_IP> 80, 443   15s
+```
+
+---
+
+### Step 4.8: Deploy Horizontal Pod Autoscaler (`09-ticket-api-hpa.yaml`)
+To automatically scale `ticket-api` up to **2 instances** when incoming traffic spikes, apply the Horizontal Pod Autoscaler (HPA):
+
+```bash
+kubectl apply -f 09-ticket-api-hpa.yaml
+```
+
+> [!IMPORTANT]
+> **Metrics-Server Prerequisite:**
+> HPA requires Kubernetes `metrics-server` to collect real-time CPU and Memory utilization metrics.
+> Check if `metrics-server` is active:
+> ```bash
+> kubectl top pods -n ticket-prod
+> ```
+> *If `metrics-server` was disabled during initial K3s setup (`--disable metrics-server`), re-enable it on your EC2 host:*
+> ```bash
+> sudo sed -i 's/--disable metrics-server//g' /etc/systemd/system/k3s.service
+> sudo systemctl daemon-reload && sudo systemctl restart k3s
+> # Wait ~30 seconds for metrics collection to initialize
+> kubectl get pods -n kube-system -l k8s-app=metrics-server
+> ```
+
+Verify HPA registration:
+```bash
+kubectl get hpa ticket-api-hpa -n ticket-prod
+```
+
+Expected output:
+```text
+NAME             REFERENCE               TARGETS                     MINPODS   MAXPODS   REPLICAS   AGE
+ticket-api-hpa   Deployment/ticket-api   cpu: 5%/50%, memory: 72%/80% 1         2         1          20s
 ```
 
 ---
@@ -527,12 +567,35 @@ chmod +x deploy.sh
 
 ---
 
-## Phase 8: Deploying Code Updates (Zero Downtime)
+## Phase 8: Zero-Downtime Rollout & Blue/Green Deployment Strategies
 
-When you make changes to backend or frontend code:
+When deploying code updates to backend or frontend workloads, choose between two production-grade zero-downtime deployment strategies:
 
-### On Your Local Machine:
-1. Rebuild and push the updated images with a new tag:
+---
+
+### Strategy A: Native Kubernetes Rolling Update (Default & Automated)
+
+The backend deployment (`k8s/04-ticket-api.yaml`) is configured with the native Kubernetes `RollingUpdate` strategy:
+
+```yaml
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+```
+
+#### How It Works Under the Hood:
+1. **Surge Creation**: Kubernetes starts 1 temporary replacement Pod (`maxSurge: 1`).
+2. **Traffic Continuity**: The existing Pod continues serving 100% of live traffic without interruption (`maxUnavailable: 0`).
+3. **Health Validation**: The new Pod runs its `startupProbe` and `readinessProbe` against `/actuator/health` every 10 seconds.
+4. **Cutover**: Only after the new Pod passes health checks (`HTTP 200 OK`) does Kubernetes register it with the Service endpoint and route incoming traffic.
+5. **Graceful Teardown**: Kubernetes sends a `SIGTERM` signal to the old Pod, allowing active HTTP connections to drain before termination.
+6. **Swap Cushion**: The host's 2 GB swap safely absorbs the temporary JVM memory during the 60–90s warm-up window.
+
+#### Step-by-Step Rolling Update:
+
+1. **Rebuild & Push from Local Workstation:**
    ```bash
    # Backend
    cd ticket
@@ -545,22 +608,194 @@ When you make changes to backend or frontend code:
    docker push <YOUR_DOCKER_USERNAME>/ticket-admin:1.0.1
    ```
 
-### On Your EC2 Server:
-2. Update the image tag in `04-ticket-api.yaml` and `05-ticket-admin.yaml` (or trigger rolling restart if using `:latest`):
+2. **Trigger Rolling Update on EC2 Server:**
    ```bash
+   # Option 1: Direct image update via kubectl
+   kubectl set image deployment/ticket-api ticket-api=<YOUR_DOCKER_USERNAME>/ticket-api:1.0.1 -n ticket-prod
+   kubectl set image deployment/ticket-admin ticket-admin=<YOUR_DOCKER_USERNAME>/ticket-admin:1.0.1 -n ticket-prod
+
+   # Option 2: Edit manifest image tags and apply
+   kubectl apply -f 04-ticket-api.yaml
+   kubectl apply -f 05-ticket-admin.yaml
+
+   # Option 3: If using :latest tag, trigger a rolling restart
    kubectl rollout restart deployment/ticket-api -n ticket-prod
    kubectl rollout restart deployment/ticket-admin -n ticket-prod
    ```
 
-3. Watch rollout progression:
+3. **Monitor Rollout Status in Real-Time:**
    ```bash
    kubectl rollout status deployment/ticket-api -n ticket-prod
    kubectl rollout status deployment/ticket-admin -n ticket-prod
    ```
 
+4. **Instant Emergency Rollback:**
+   If the new release contains an application bug, roll back immediately with zero downtime:
+   ```bash
+   kubectl rollout undo deployment/ticket-api -n ticket-prod
+   ```
+
 ---
 
-## Phase 9: Server Maintenance & Resource Management
+### Strategy B: Blue/Green Deployment (Isolated Pre-Release Testing)
+
+For mission-critical updates where you need to run full end-to-end smoke tests against the candidate version in production before routing any public traffic to it:
+
+```text
+       Live Production Traffic (Ingress / Admin UI)
+                            │
+                            ▼
+               [ Service: ticket-api-svc ]
+                 selector: version=blue
+                  │                   │
+                  ▼ (100% Traffic)    ▼ (0% Traffic)
+       ┌─────────────────────┐     ┌─────────────────────┐
+       │   ticket-api-blue   │     │   ticket-api-green  │
+       │     (v1.0.0 Live)   │     │ (v1.0.1 Candidate)  │
+       └─────────────────────┘     └─────────────────────┘
+```
+
+The Blue/Green manifests are located in `k8s/blue-green/`:
+- `04-ticket-api-service.yaml`: Controls active traffic routing via the `version` selector, and provides `ticket-api-preview-svc` for candidate testing.
+- `04-ticket-api-blue.yaml`: Production Blue deployment (`version: blue`).
+- `04-ticket-api-green.yaml`: Release Candidate Green deployment (`version: green`).
+- `switch.sh`: Automated atomic switcher script.
+
+#### Step-by-Step Blue/Green Execution:
+
+1. **Deploy Initial Service and Blue Version:**
+   ```bash
+   cd ~/mono-ticket/k8s/blue-green
+   kubectl apply -f 04-ticket-api-service.yaml
+   kubectl apply -f 04-ticket-api-blue.yaml
+   ```
+
+2. **Deploy Green Candidate with Updated Image:**
+   Update the image tag in `04-ticket-api-green.yaml` to `1.0.1`, then deploy:
+   ```bash
+   kubectl apply -f 04-ticket-api-green.yaml
+   ```
+   Wait for Green to become healthy:
+   ```bash
+   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=ticket-api,version=green -n ticket-prod --timeout=120s
+   ```
+
+3. **Private Smoke Testing (Isolated from Public Users):**
+   Forward the private preview service:
+   ```bash
+   kubectl port-forward svc/ticket-api-preview-svc 8001:8000 -n ticket-prod &
+   PF_PID=$!
+
+   curl http://localhost:8001/actuator/health
+   # Expected output: {"status":"UP"}
+
+   kill $PF_PID
+   ```
+
+4. **Atomic Cutover to Green (0ms Instant Switch):**
+   ```bash
+   ./switch.sh green
+   ```
+   *(Or via raw kubectl: `kubectl patch service ticket-api-svc -n ticket-prod -p '{"spec":{"selector":{"version":"green"}}}'`)*.
+
+5. **Instant Rollback (If needed):**
+   If unexpected errors occur in production logs, revert traffic back to Blue in 1 second:
+   ```bash
+   ./switch.sh blue
+   ```
+
+6. **Resource Optimization for `t3.micro`:**
+   After Green is stable, scale down the inactive Blue deployment to 0 replicas to free RAM:
+   ```bash
+   kubectl scale deployment ticket-api-blue -n ticket-prod --replicas=0
+   ```
+   *(When deploying the next release, update Blue and repeat the cycle in reverse!)*
+
+---
+
+## Phase 9: Traffic Autoscaling (HPA) Verification & Load Testing
+
+The `ticket-api` workload is protected by a `HorizontalPodAutoscaler` (`k8s/09-ticket-api-hpa.yaml`):
+- **Min Replicas**: 1
+- **Max Replicas**: 2
+- **Metrics Trigger**: CPU > 50% (75m CPU) OR Memory > 80% (160Mi)
+- **Scale-Up Policy**: Instant (0s stabilization window)
+- **Scale-Down Policy**: Cooldown (60s stabilization window)
+
+### Step 9.1: Watch HPA in Real-Time
+Open a terminal on your EC2 host:
+```bash
+kubectl get hpa ticket-api-hpa -n ticket-prod -w
+```
+
+In another terminal, watch pod replica scaling:
+```bash
+kubectl get pods -l app.kubernetes.io/name=ticket-api -n ticket-prod -w
+```
+
+---
+
+### Step 9.2: Simulate Traffic Load to Trigger Scale-Up
+
+Because the CPU request is capped at `150m`, hitting the API with modest concurrency will raise CPU above `50%` (`75m`) and prompt the HPA to scale from 1 to 2 pods within 15–30 seconds.
+
+Choose any of the following testing options:
+
+#### Option 1: In-Cluster Load Generator Pod (Recommended — No tools required)
+Run a temporary lightweight container inside your cluster that queries the API endpoint in a loop:
+```bash
+kubectl run load-generator --rm -i --tty \
+  --image=busybox:1.36 \
+  --restart=Never \
+  -n ticket-prod \
+  -- /bin/sh -c "while true; do wget -q -O- http://ticket-api-svc:8000/actuator/health; done"
+```
+
+#### Option 2: Apache Bench (`ab`) from Workstation or EC2
+Send 5,000 requests with concurrency 15 over HTTPS:
+```bash
+ab -n 5000 -c 15 https://api.yourdomain.com/actuator/health
+```
+
+#### Option 3: Simple Bash `curl` Loop
+From your local terminal:
+```bash
+for i in {1..2000}; do
+  curl -s -o /dev/null -w "%{http_code}\n" https://api.yourdomain.com/actuator/health &
+  if (( i % 25 == 0 )); then sleep 0.1; fi
+done
+wait
+```
+
+---
+
+### Step 9.3: Observe HPA Scaling Up to 2 Instances
+Within 15–30 seconds of starting the load test, HPA detects CPU utilization rising above 50%:
+```text
+NAME             REFERENCE               TARGETS                      MINPODS   MAXPODS   REPLICAS   AGE
+ticket-api-hpa   Deployment/ticket-api   cpu: 82%/50%, mem: 75%/80%   1         2         1          2m
+ticket-api-hpa   Deployment/ticket-api   cpu: 96%/50%, mem: 76%/80%   1         2         2          2m15s
+```
+
+Checking `kubectl get pods -n ticket-prod` confirms the 2nd pod initializing and becoming `Running 1/1`:
+```text
+NAME                          READY   STATUS    RESTARTS   AGE
+ticket-api-7b8f974c5d-x8kl2   1/1     Running   0          45m
+ticket-api-7b8f974c5d-m2q9p   1/1     Running   0          25s
+```
+
+---
+
+### Step 9.4: Observe Cooldown & Scale-Down Back to 1 Instance
+Stop the load test (press `Ctrl + C` on the load generator).
+The CPU usage drops back to idle (`< 10%`). After the 60-second stabilization cooldown window, HPA automatically scales the deployment back down to 1 pod:
+```text
+ticket-api-hpa   Deployment/ticket-api   cpu: 5%/50%, mem: 73%/80%   1         2         1          4m30s
+```
+
+---
+
+## Phase 10: Server Maintenance & Resource Management
 
 ### Clean Up Stale Images (Free Disk Space)
 Over time, pulling new images leaves dangling container layers on your EBS disk. Prune them with:
@@ -588,9 +823,15 @@ free -h
 | View Frontend live logs | `kubectl logs -f deployment/ticket-admin -n ticket-prod` |
 | View MongoDB live logs | `kubectl logs -f deployment/mongo-db -n ticket-prod` |
 | View Traefik ingress logs | `kubectl logs -f -n kube-system -l app.kubernetes.io/name=traefik` |
+| Check HPA status | `kubectl get hpa -n ticket-prod` |
+| Watch HPA live scaling | `kubectl get hpa -n ticket-prod -w` |
+| Inspect pod CPU & Memory usage | `kubectl top pods -n ticket-prod` |
+| Watch deployment rollout | `kubectl rollout status deployment/ticket-api -n ticket-prod` |
+| Undo last deployment (Rollback) | `kubectl rollout undo deployment/ticket-api -n ticket-prod` |
+| Switch Blue/Green traffic | `./k8s/blue-green/switch.sh {green\|blue}` |
 | Check SSL certificate | `kubectl get certificate -n ticket-prod` |
 | Shell into MongoDB | `kubectl exec -it deployment/mongo-db -n ticket-prod -- mongosh ticket_db` |
-| Restart application | `./k8s/deploy.sh restart` |
+| Restart application (Zero Downtime)| `./k8s/deploy.sh restart` |
 
 ---
 

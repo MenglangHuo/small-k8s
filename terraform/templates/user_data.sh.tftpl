@@ -1,0 +1,103 @@
+#!/bin/bash
+# =============================================================================
+# Mono-Ticket K3s Server Bootstrap Script
+# Follows: docs/02_infrastructure_setup.md (Phases 5, 6, 9)
+# =============================================================================
+
+set -euo pipefail
+
+# Redirect stdout and stderr to both console and logfile
+exec > >(tee -a /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
+
+echo "==================================================================="
+echo "Starting Mono-Ticket EC2 Node Bootstrapping at $(date -u)"
+echo "==================================================================="
+
+export DEBIAN_FRONTEND=noninteractive
+
+# -----------------------------------------------------------------------------
+# 1. Update OS and Install Core Tooling (docs Phase 5.2)
+# -----------------------------------------------------------------------------
+echo "[1/6] Updating system packages and installing prerequisites..."
+apt-get update -y
+apt-get upgrade -y
+apt-get install -y curl wget git net-tools iptables ca-certificates apt-transport-https
+
+# -----------------------------------------------------------------------------
+# 2. Swap Space Allocation & Kernel Tuning (docs Phase 5.3)
+# -----------------------------------------------------------------------------
+if [ "${swap_size_gb}" -gt 0 ]; then
+  echo "[2/6] Configuring ${swap_size_gb} GiB swap space..."
+  if [ ! -f /swapfile ]; then
+    fallocate -l "${swap_size_gb}G" /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=$((${swap_size_gb} * 1024))
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  else
+    echo "Swapfile already exists, skipping creation."
+  fi
+
+  echo "Tuning vm.swappiness to ${swappiness}..."
+  sysctl vm.swappiness="${swappiness}"
+  if ! grep -q "vm.swappiness" /etc/sysctl.conf; then
+    echo "vm.swappiness=${swappiness}" >> /etc/sysctl.conf
+  else
+    sed -i "s/vm.swappiness=.*/vm.swappiness=${swappiness}/" /etc/sysctl.conf
+  fi
+fi
+
+# -----------------------------------------------------------------------------
+# 3. Disable Host UFW Firewall (docs Phase 5.4)
+# -----------------------------------------------------------------------------
+echo "[3/6] Ensuring UFW is disabled so K3s Flannel CNI routes traffic unimpeded..."
+ufw disable || true
+
+# -----------------------------------------------------------------------------
+# 4. Install K3s Lightweight Kubernetes (docs Phase 6)
+# -----------------------------------------------------------------------------
+%{ if install_k3s ~}
+echo "[4/6] Installing K3s with Traefik enabled and metrics-server disabled..."
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server \
+  --disable metrics-server \
+  --write-kubeconfig-mode 644" sh -
+
+echo "Configuring kubectl environment for user 'ubuntu'..."
+mkdir -p /home/ubuntu/.kube
+cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
+chown -R ubuntu:ubuntu /home/ubuntu/.kube
+if ! grep -q "KUBECONFIG" /home/ubuntu/.bashrc; then
+  echo 'export KUBECONFIG=~/.kube/config' >> /home/ubuntu/.bashrc
+fi
+
+# -----------------------------------------------------------------------------
+# 5. Wait for Cluster Ready & Install Cert-Manager (docs Phase 9)
+# -----------------------------------------------------------------------------
+%{ if install_cert_manager ~}
+echo "[5/6] Waiting for K3s node to report Ready state..."
+RETRIES=0
+MAX_RETRIES=30
+until /usr/local/bin/kubectl get nodes 2>/dev/null | grep -q "Ready"; do
+  RETRIES=$((RETRIES + 1))
+  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
+    echo "Timeout waiting for K3s node to be ready."
+    break
+  fi
+  echo "Node not ready yet ($RETRIES/$MAX_RETRIES). Sleeping 5s..."
+  sleep 5
+done
+
+echo "Applying Cert-Manager ${cert_manager_version} manifest..."
+/usr/local/bin/kubectl apply -f "https://github.com/cert-manager/cert-manager/releases/download/${cert_manager_version}/cert-manager.yaml"
+%{ else ~}
+echo "[5/6] Skipping Cert-Manager installation (install_cert_manager = false)."
+%{ endif ~}
+%{ else ~}
+echo "[4/6 & 5/6] Skipping K3s and Cert-Manager installation (install_k3s = false)."
+%{ endif ~}
+
+# -----------------------------------------------------------------------------
+# 6. Finalization
+# -----------------------------------------------------------------------------
+echo "[6/6] Node provisioning complete at $(date -u)"
+touch /var/log/user-data-complete

@@ -74,7 +74,7 @@ public class AuthController {
         )));
     }
 
-    @PostMapping(value = "/login", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+    @PostMapping(value = {"/login", "/signin"}, consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
     public Mono<ResponseEntity<Map<String, Object>>> loginMultipart(ServerWebExchange exchange) {
         return exchange.getMultipartData().flatMap(multipartMap -> {
             String username = getFormField(multipartMap, "username", "");
@@ -83,11 +83,18 @@ public class AuthController {
         });
     }
 
-    @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = {"/login", "/signin"}, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Mono<ResponseEntity<Map<String, Object>>> loginJson(@RequestBody(required = false) Map<String, Object> body) {
         String username = body != null && body.containsKey("username") ? String.valueOf(body.get("username")) : "";
         String password = body != null && body.containsKey("password") ? String.valueOf(body.get("password")) : "";
         return performLogin(username, password);
+    }
+
+    @PostMapping(value = {"/login", "/signin"})
+    public Mono<ResponseEntity<Map<String, Object>>> loginDefault(
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String password) {
+        return performLogin(username != null ? username : "", password != null ? password : "");
     }
 
     private Mono<ResponseEntity<Map<String, Object>>> performLogin(String username, String password) {

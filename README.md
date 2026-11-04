@@ -24,7 +24,10 @@ All running on a single **AWS EC2 t3.micro** (1 vCPU, 1GB RAM + 2GB Swap) using 
 | [02_infrastructure_setup.md](docs/02_infrastructure_setup.md) | EC2 launch, swap, K3s, Nginx Ingress, DNS |
 | [03_deployment_guide.md](docs/03_deployment_guide.md) | Build images, deploy manifests, verify |
 | [04_troubleshooting.md](docs/04_troubleshooting.md) | When things go wrong |
+| [05_redeploy_guide.md](docs/05_redeploy_guide.md) | Zero-downtime redeployment, Rolling Updates & Blue/Green |
+| [06_hpa_testing_guide.md](docs/06_hpa_testing_guide.md) | HPA traffic autoscaling (1 → 2 pods), CLI stress tests & scenarios |
 | [k8s_guideline.md](k8s/k8s_guideline.md) | K8s concepts, docker-compose comparison |
+| [terraform/README.md](terraform/README.md) | AWS Terraform IaC automation (VPC, Security Group, EC2 t3.medium, EIP) |
 
 ---
 
@@ -44,7 +47,7 @@ vim k8s/02-secrets.yaml
 kubectl apply -f k8s/
 
 # 4. Check status
-kubectl get pods -n ticket-prod
+kubectl get pods,hpa -n ticket-prod
 ```
 
 ---
@@ -57,11 +60,13 @@ k8s/
 ├── 01-configmap.yaml        # Non-sensitive env vars
 ├── 02-secrets.example.yaml  # Credentials template (copy to 02-secrets.yaml)
 ├── 03-mongodb.yaml          # MongoDB: PVC + Deployment + Service + Init
-├── 04-ticket-api.yaml       # Spring Boot API: Deployment + Service
+├── 04-ticket-api.yaml       # Spring Boot API: Deployment + Service + RollingUpdate
 ├── 05-ticket-admin.yaml     # Vue.js SPA: Nginx ConfigMap + Deployment + Service
 ├── 06-ingress.yaml          # Domain routing + Traefik HTTPS redirect
 ├── 07-cluster-issuer.yaml   # Let's Encrypt auto-SSL (Traefik ACME)
 ├── 08-mongodb-network-policy.yaml # Zero-trust DB NetworkPolicy
+├── 09-ticket-api-hpa.yaml   # Horizontal Pod Autoscaler (1 -> 2 instances on traffic)
+├── blue-green/              # Blue/Green isolated deployment & cutover tools
 ├── deploy.sh                # Production deployment automation CLI script
 └── k8s_guideline.md         # Understanding the K8s setup
 ```
@@ -90,6 +95,7 @@ mono-ticket/
 │   ├── Dockerfile           # Multi-stage build → nginx:1.27-alpine
 │   └── src/                 # Vue source code
 ├── k8s/                     # Kubernetes manifests
+├── terraform/               # Terraform AWS IaC automation (VPC, EC2 t3.medium, EIP)
 ├── docs/                    # Deployment documentation
 └── README.md                # ← You are here
 ```

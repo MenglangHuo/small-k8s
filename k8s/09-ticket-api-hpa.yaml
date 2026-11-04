@@ -1,0 +1,46 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ticket-api-hpa
+  namespace: ticket-prod
+  labels:
+    app.kubernetes.io/name: ticket-api
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: mono-ticket
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ticket-api
+  minReplicas: 1
+  maxReplicas: 2
+  metrics:
+    # 1. CPU Target: 50% of request (150m * 50% = 75m)
+    # Easily triggered during load testing (e.g. ab, hey, curl in loop)
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+    # 2. Memory Target: 80% of request (200Mi * 80% = 160Mi)
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+    scaleDown:
+      # 60s stabilization window ensures rapid recovery during tests without thrashing
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30

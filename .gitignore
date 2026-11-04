@@ -25,6 +25,23 @@ Thumbs.db
 !.env.example
 k8s/02-secrets.yaml
 .mono-ticket-secrets
+*.pem
+k3s-ticket-key.pem
+
+# Terraform
+.terraform/
+!.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+!terraform.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
 
 # Logs
 *.log

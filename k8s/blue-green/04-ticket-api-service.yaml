@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticket-api-svc
+  namespace: ticket-prod
+  labels:
+    app.kubernetes.io/name: ticket-api
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: mono-ticket
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ticket-api
+    version: blue   # Traffic routes here. Change to 'green' for instantaneous cutover.
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+      name: http
+---
+# Internal Preview Service to smoke-test candidate release before switching live traffic
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticket-api-preview-svc
+  namespace: ticket-prod
+  labels:
+    app.kubernetes.io/name: ticket-api-preview
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: mono-ticket
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ticket-api
+    version: green   # Points to release candidate
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+      name: http

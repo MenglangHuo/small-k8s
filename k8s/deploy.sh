@@ -93,24 +93,30 @@ deploy_all() {
   log_info "7. Applying Ingress Routing Rules..."
   kubectl apply -f "${SCRIPT_DIR}/06-ingress.yaml"
 
+  if [ -f "${SCRIPT_DIR}/09-ticket-api-hpa.yaml" ]; then
+    log_info "8. Applying Horizontal Pod Autoscaler (HPA)..."
+    kubectl apply -f "${SCRIPT_DIR}/09-ticket-api-hpa.yaml"
+  fi
+
   log_success "Deployment applied successfully!"
   echo ""
   log_info "Checking resources in namespace '${NAMESPACE}':"
-  kubectl get pods,svc,ingress,pvc -n "${NAMESPACE}"
+  kubectl get pods,svc,ingress,pvc,hpa -n "${NAMESPACE}"
 }
 
 restart_apps() {
-  log_warn "Restarting single-replica workloads; brief downtime is expected."
+  log_info "Triggering zero-downtime rolling restart (RollingUpdate strategy)..."
   kubectl rollout restart deployment/ticket-api -n "${NAMESPACE}"
   kubectl rollout restart deployment/ticket-admin -n "${NAMESPACE}"
   log_info "Watching rollout status..."
   kubectl rollout status deployment/ticket-api -n "${NAMESPACE}" --timeout=180s || true
   kubectl rollout status deployment/ticket-admin -n "${NAMESPACE}" --timeout=120s || true
-  log_success "Rollout triggered."
+  log_success "Rollout completed successfully."
 }
 
 teardown() {
   log_warn "Tearing down all mono-ticket application resources..."
+  kubectl delete -f "${SCRIPT_DIR}/09-ticket-api-hpa.yaml" --ignore-not-found
   kubectl delete -f "${SCRIPT_DIR}/06-ingress.yaml" --ignore-not-found
   kubectl delete -f "${SCRIPT_DIR}/05-ticket-admin.yaml" --ignore-not-found
   kubectl delete -f "${SCRIPT_DIR}/04-ticket-api.yaml" --ignore-not-found
@@ -122,7 +128,7 @@ teardown() {
 
 show_status() {
   log_info "Current deployment status in ${NAMESPACE}:"
-  kubectl get all,pvc,ingress -n "${NAMESPACE}"
+  kubectl get all,pvc,ingress,hpa -n "${NAMESPACE}"
 }
 
 case "${1:-deploy}" in

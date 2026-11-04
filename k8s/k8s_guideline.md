@@ -37,6 +37,13 @@ k8s/
 ├── 06-ingress.yaml          # External routing rules (Traefik Ingress + HTTPS redirect)
 ├── 07-cluster-issuer.yaml   # Auto SSL certificate from Let's Encrypt (Traefik ACME solver)
 ├── 08-mongodb-network-policy.yaml # Zero-trust NetworkPolicy (only ticket-api can access DB)
+├── 09-ticket-api-hpa.yaml   # Horizontal Pod Autoscaler: Autoscale ticket-api 1 -> 2 instances on traffic
+├── blue-green/              # Optional Blue/Green deployment manifests & switcher script
+│   ├── 04-ticket-api-blue.yaml
+│   ├── 04-ticket-api-green.yaml
+│   ├── 04-ticket-api-service.yaml
+│   ├── switch.sh
+│   └── README.md
 ├── deploy.sh                # Production deployment automation CLI script
 └── k8s_guideline.md         # ← You are here
 ```
@@ -53,10 +60,11 @@ kubectl apply -f k8s/03-mongodb.yaml                # 4. Database before API
 kubectl apply -f k8s/08-mongodb-network-policy.yaml # 5. DB NetworkPolicy isolation
 # Wait for MongoDB to be ready:
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=mongodb -n ticket-prod --timeout=120s
-kubectl apply -f k8s/04-ticket-api.yaml             # 6. API after DB is ready
+kubectl apply -f k8s/04-ticket-api.yaml             # 6. API after DB is ready (RollingUpdate enabled)
 kubectl apply -f k8s/05-ticket-admin.yaml           # 7. Frontend
 kubectl apply -f k8s/07-cluster-issuer.yaml         # 8. SSL issuer
-kubectl apply -f k8s/06-ingress.yaml                # 9. Ingress routes (last)
+kubectl apply -f k8s/06-ingress.yaml                # 9. Ingress routes
+kubectl apply -f k8s/09-ticket-api-hpa.yaml         # 10. Horizontal Pod Autoscaler (1 -> 2 pods on load)
 ```
 
 **Or automated deployment via script:**

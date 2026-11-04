@@ -79,6 +79,7 @@ public class AuthTokenWebFilter implements WebFilter {
     private boolean isPublicEndpoint(String path) {
         return path.equals("/token")
                 || path.equals("/login")
+                || path.equals("/signin")
                 || path.equals("/two-factor")
                 || path.equals("/logout")
                 || path.startsWith("/actuator");
