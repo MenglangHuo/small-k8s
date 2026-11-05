@@ -26,8 +26,9 @@ All running on a single **AWS EC2 t3.micro** (1 vCPU, 1GB RAM + 2GB Swap) using 
 | [04_troubleshooting.md](docs/04_troubleshooting.md) | When things go wrong |
 | [05_redeploy_guide.md](docs/05_redeploy_guide.md) | Zero-downtime redeployment, Rolling Updates & Blue/Green |
 | [06_hpa_testing_guide.md](docs/06_hpa_testing_guide.md) | HPA traffic autoscaling (1 → 2 pods), CLI stress tests & scenarios |
+| [07_terraform_deployment_guide.md](docs/07_terraform_deployment_guide.md) | Automated 1-click AWS Terraform deployment guide (VPC, t3.medium, K3s) |
 | [k8s_guideline.md](k8s/k8s_guideline.md) | K8s concepts, docker-compose comparison |
-| [terraform/README.md](terraform/README.md) | AWS Terraform IaC automation (VPC, Security Group, EC2 t3.medium, EIP) |
+| [terraform/README.md](terraform/README.md) | AWS Terraform IaC codebase overview & beginner guide |
 
 ---
 
